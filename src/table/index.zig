@@ -4,6 +4,9 @@ const builtin = @import("builtin");
 const util = @import("./util.zig");
 const log = @import("./log.zig");
 
+const test_gpa = std.testing.allocator;
+const expect = std.testing.expect;
+
 const Separators = struct {
     const Chars = struct { left: []const u8, right: []const u8, separator: []const u8 };
 
@@ -57,6 +60,9 @@ pub fn GenerateRowWidths(comptime Row: type) type {
     const row_fields = @typeInfo(Row).@"struct".fields;
     var fields: [row_fields.len]std.builtin.Type.StructField = undefined;
     inline for (row_fields, 0..) |field, i| {
+        if (field.type != []const u8) {
+            @panic("All fields in the table must be []const u8");
+        }
         fields[i] = std.builtin.Type.StructField{
             .name = field.name,
             .type = usize,
@@ -104,11 +110,6 @@ pub fn GenerateTableType(
         }
 
         pub fn deinit(self: *Self) void {
-            for (self.rows.items) |*it| {
-                if (!it.header) {
-                    it.deinit();
-                }
-            }
             self.rows.clearAndFree();
             self.rows.clearRetainingCapacity();
             self.rows.deinit();
@@ -237,7 +238,7 @@ pub fn GenerateTableType(
 
         /// Clears the printed table
         pub fn clear(self: *Self) !void {
-            const num_of_rows = self.rows.items.len + 3;
+            const num_of_rows = self.rows.items.len;
             // Length of table row in terminal columns
             const fl_row_width: f32 = @floatFromInt(self.get_total_row_width());
             const fl_window_cols: f32 = @floatFromInt(try log.get_window_cols());
@@ -248,7 +249,7 @@ pub fn GenerateTableType(
             for (0..total_rows_printed) |_| try log.print("\x1b[A\x1b[2K", .{});
         }
 
-        pub fn calculate_total_rows(row_width: f32, window_cols: f32, num_of_rows: usize) usize {
+        fn calculate_total_rows(row_width: f32, window_cols: f32, num_of_rows: usize) usize {
             const overlap: usize = if (window_cols < row_width)
                 @intFromFloat(@ceil(row_width / window_cols))
                 else
@@ -270,4 +271,62 @@ pub fn GenerateTableType(
             self.row_widths = RowWidths{};
         }
     };
+}
+
+
+test "Successfully make table with one row" {
+    std.debug.print("Successfully make table with one row\n\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+    const new_row: Row = Row {
+        .col1 = "col1",
+        .col2 = "col2",
+        .col3 = "col3",
+        .col4 = "col4"
+    };
+    try t.add_row(new_row);
+
+    try expect(t.rows.items.len == 1);
+}
+
+test "Make table with multiple rows and check row width" {
+    std.debug.print("Make table with multiple rows and check row width\n\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+    const new_row1: Row = Row {
+        .col1 = "col1",
+        .col2 = "col2",
+        .col3 = "col3",
+        .col4 = "col4"
+    };
+    const new_row2: Row = Row {
+        .col1 = "col1",
+        .col2 = "col2222",
+        .col3 = "col33",
+        .col4 = "col44444"
+    };
+    try t.add_row(new_row1);
+    try t.add_row(new_row2);
+
+    try expect(t.rows.items.len == 2);
+    try expect(t.row_widths.col1 == 6);
+    try expect(t.row_widths.col2 == 9);
+    try expect(t.row_widths.col3 == 7);
+    try expect(t.row_widths.col4 == 10);
 }
