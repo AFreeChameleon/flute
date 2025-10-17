@@ -7,65 +7,27 @@ const std = @import("std");
 const flute = @import("./table/index.zig");
 const GenerateTableType = flute.GenerateTableType;
 
-pub const Row = struct {
-    id: []const u8,
-    namespace: []const u8,
-    command: []const u8,
-    location: []const u8,
-    pid: []const u8,
-    status: []const u8,
-    memory: []const u8,
-    cpu: []const u8,
-    runtime: []const u8,
-    // child: bool,
-    // header: bool,
-    // table: *Table,
 
-    pub fn init() Row {
-        return Row {
-            .id = "",
-            .namespace = "",
-            .command = "",
-            .location = "",
-            .pid = "",
-            .status = "",
-            .memory = "",
-            .cpu = "",
-            .runtime = "",
-            // .child = false,
-            // .header = false,
-            // .table = t,
-        };
-    }
+const Row = struct {
+    col1: []const u8,
+    col2: []const u8,
+    col3: []const u8,
+    col4: []const u8,
 };
-
 pub const Table = GenerateTableType(Row);
-
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var table = try Table.init(allocator);
-    var row = Row.init();
-    row.id = "123";
-    row.namespace = "namespacess";
-    row.command = "command";
-    row.location = "hihhihihihihihi";
-    row.pid = "1";
-    row.status = "online";
-    row.memory = "gooby";
-    row.cpu = "25%";
-    row.runtime = "12 billion years";
-    try table.add_row(row);
-    var row1 = Row.init();
-    row1.id = "123";
-    row1.namespace = "namespacess";
-    row1.command = "command";
-    row1.location = "hihhihihihihifasdfsddasfshi";
-    row1.pid = "1";
-    row1.status = "online";
-    row1.memory = "gooby";
-    row1.cpu = "25%";
-    row1.runtime = "12 billion years";
-    try table.add_row(row1);
-    try table.print_table();
+
+    var t = try Table.init(allocator);
+    defer t.deinit();
+    const new_row1: Row = Row {
+        .col1 = "你好",
+        .col2 = "狗",
+        .col3 = "你今天吃饭了吗",
+        .col4 = "不想要"
+    };
+    try t.add_row(new_row1);
+
+    try t.print_table();
 }

@@ -274,6 +274,10 @@ pub fn GenerateTableType(
 }
 
 
+test "table/index.zig" {
+    std.debug.print("----- table/index.zig -----\n\n", .{});
+}
+
 test "Successfully make table with one row" {
     std.debug.print("Successfully make table with one row\n\n", .{});
 
@@ -329,4 +333,35 @@ test "Make table with multiple rows and check row width" {
     try expect(t.row_widths.col2 == 9);
     try expect(t.row_widths.col3 == 7);
     try expect(t.row_widths.col4 == 10);
+}
+
+test "Make table with one row with chinese characters and check row width" {
+    std.debug.print("Make table with one row with chinese characters and check row width\n\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+    const new_row1: Row = Row {
+        .col1 = "你好",
+        .col2 = "狗",
+        .col3 = "你今天吃饭了吗",
+        .col4 = "不想要"
+    };
+    try t.add_row(new_row1);
+
+    try t.print_table();
+
+    std.debug.print("{d} {d} {d} {d}\n", .{t.row_widths.col1, t.row_widths.col2, t.row_widths.col3, t.row_widths.col4});
+
+    try expect(t.rows.items.len == 1);
+    try expect(t.row_widths.col1 == 4);
+    try expect(t.row_widths.col2 == 3);
+    try expect(t.row_widths.col3 == 9);
+    try expect(t.row_widths.col4 == 5);
 }
