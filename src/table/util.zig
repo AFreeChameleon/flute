@@ -1,44 +1,6 @@
 const std = @import("std");
 
-/// Remove ANSI codes starting with 0x1B[ and ending with 'm'
-pub fn strip_ansi_codes(gpa: std.mem.Allocator, str: []const u8) ![]u8 {
-    var start_idx: i32 = -1;
-
-    var str_buf = try gpa.alloc(u8, str.len);
-    var str_buf_idx: usize = 0;
-    defer gpa.free(str_buf);
-
-    for (str, 0..) |char, i| {
-        // These two if statements take care of the "0x1B[" characters
-        if (start_idx + 1 == i and char == '[') {
-            continue;
-        }
-        if (char == 0x1B) {
-            start_idx = @intCast(i);
-            continue;
-        }
-
-        // If we're in the start esc sequence
-        if (start_idx != -1) {
-            if (char == 'm') {
-                start_idx = -1;
-                continue;
-            } else if (
-                char == ';' or
-                std.ascii.isDigit(char)
-            ) {
-                continue;
-                
-            } else start_idx = -1;
-        }
-        str_buf[str_buf_idx] = char;
-        str_buf_idx += 1;
-    }
-    return try gpa.dupe(u8, str_buf[0..str_buf_idx]);
-}
-
-
-pub fn get_string_visual_length(str: []const u8) !u32 {
+pub fn getStringVisualLength(str: []const u8) !u32 {
     var iter: std.unicode.Utf8Iterator = .{.bytes = str, .i = 0};
     var count: u32 = 0;
     while (iter.nextCodepoint()) |code_point| {

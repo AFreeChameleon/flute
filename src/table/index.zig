@@ -115,29 +115,29 @@ pub fn GenerateTableType(
             self.rows.deinit();
         }
 
-        pub fn add_row(self: *Self, row: Row) !void {
+        pub fn addRow(self: *Self, row: Row) !void {
             try self.rows.append(row);
-            try self.update_row_widths(&row);
+            try self.updateRowWidths(&row);
         }
 
-        pub fn remove_rows(self: *Self, num_rows: usize) !void {
+        pub fn removeRows(self: *Self, num_rows: usize) !void {
             for (0..num_rows) |_| {
                 self.rows.items[self.rows.items.len - 1].deinit();
                 _ = self.rows.swapRemove(self.rows.items.len - 1);
             }
         }
 
-        fn refresh_all_row_widths(self: *Self) !void {
+        fn refreshAllRowWidths(self: *Self) !void {
             for (self.rows.items) |*row| {
-                try self.update_row_widths(row);
+                try self.updateRowWidths(row);
             }
         }
 
         /// Iterates over every field and updates row widths to make it responsive
-        pub fn update_row_widths(self: *Self, new_row: *const Row) !void {
+        pub fn updateRowWidths(self: *Self, new_row: *const Row) !void {
             inline for (@typeInfo(RowWidths).@"struct".fields) |field| {
                 // Adding a space of padding on either side
-                const new_field = try util.get_string_visual_length(
+                const new_field = try util.getStringVisualLength(
                     @field(new_row, field.name)
                 ) + 2;
                 const old_field = @field(self.row_widths, field.name);
@@ -148,15 +148,15 @@ pub fn GenerateTableType(
         }
 
         /// Prints all headers and rows in the table
-        pub fn print_table(self: *Self) !void {
-            try self.print_border(Separators.top);
+        pub fn printTable(self: *Self) !void {
+            try self.printBorder(Separators.top);
             for (self.rows.items) |row| {
-                try self.print_row(&row);
+                try self.printRow(&row);
             }
-            try self.print_border(Separators.bottom);
+            try self.printBorder(Separators.bottom);
         }
 
-        fn print_row(self: *Self, row: *const Row) !void {
+        fn printRow(self: *Self, row: *const Row) !void {
             var buf_list = std.ArrayList(u8).init(self.gpa);
             defer buf_list.deinit();
             var writer = buf_list.writer();
@@ -168,7 +168,7 @@ pub fn GenerateTableType(
             inline for (@typeInfo(RowWidths).@"struct".fields, 0..) |field, i| {
                 try writer.writeByte(' ');
                 const row_width = @field(row, field.name).len;
-                const visual_row_width = try util.get_string_visual_length(
+                const visual_row_width = try util.getStringVisualLength(
                     @field(row, field.name)
                 );
                 // -1 because left padding has already been added
@@ -194,7 +194,7 @@ pub fn GenerateTableType(
             try log.print("{s}\n", .{buf_list.items});
         }
 
-        fn print_border(self: *Self, chars: Separators.Chars) !void {
+        fn printBorder(self: *Self, chars: Separators.Chars) !void {
             var buf_list = std.ArrayList(u8).init(self.gpa);
             defer buf_list.deinit();
             var writer = buf_list.writer();
@@ -223,7 +223,7 @@ pub fn GenerateTableType(
             try log.print("{s}\n", .{buf_list.items});
         }
 
-        pub fn get_total_row_width(self: *Self) usize {
+        pub fn getTotalRowWidth(self: *Self) usize {
             const fields = @typeInfo(RowWidths).@"struct".fields;
 
             // Borders in between
@@ -238,8 +238,8 @@ pub fn GenerateTableType(
         pub fn clear(self: *Self) !void {
             const num_of_rows = self.rows.items.len;
             // Length of table row in terminal columns
-            const fl_row_width: f32 = @floatFromInt(self.get_total_row_width());
-            const fl_window_cols: f32 = @floatFromInt(try log.get_window_cols());
+            const fl_row_width: f32 = @floatFromInt(self.getTotalRowWidth());
+            const fl_window_cols: f32 = @floatFromInt(try log.getWindowCols());
 
             const total_rows_printed = calculate_total_rows(fl_row_width, fl_window_cols, num_of_rows);
 
@@ -294,7 +294,7 @@ test "Successfully make table with one row" {
         .col3 = "col3",
         .col4 = "col4"
     };
-    try t.add_row(new_row);
+    try t.addRow(new_row);
 
     try expect(t.rows.items.len == 1);
 }
@@ -323,8 +323,8 @@ test "Make table with multiple rows and check row width" {
         .col3 = "col33",
         .col4 = "col44444"
     };
-    try t.add_row(new_row1);
-    try t.add_row(new_row2);
+    try t.addRow(new_row1);
+    try t.addRow(new_row2);
 
     try expect(t.rows.items.len == 2);
     try expect(t.row_widths.col1 == 6);
@@ -351,7 +351,7 @@ test "Make table with one row with cyrillic characters and check row width" {
         .col3 = "ЧЧЧЧЧ",
         .col4 = "СССС"
     };
-    try t.add_row(new_row1);
+    try t.addRow(new_row1);
 
     try expect(t.rows.items.len == 1);
     try expect(t.row_widths.col1 == 4);
@@ -362,7 +362,7 @@ test "Make table with one row with cyrillic characters and check row width" {
 }
 
 test "Make table with one row with chinese characters and check row width" {
-    std.debug.print("Make table with one row with chinese characters and check row width\n\n", .{});
+    std.debug.print("Make table with one row with chinese characters and check row width\n", .{});
 
     const Row = struct {
         col1: []const u8,
@@ -379,7 +379,7 @@ test "Make table with one row with chinese characters and check row width" {
         .col3 = "你今天吃饭了吗",
         .col4 = "不想要"
     };
-    try t.add_row(new_row1);
+    try t.addRow(new_row1);
 
     try expect(t.rows.items.len == 1);
     try expect(t.row_widths.col1 == 6);
