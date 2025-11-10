@@ -138,7 +138,6 @@ pub fn GenerateTableType(
             inline for (@typeInfo(RowWidths).@"struct".fields) |field| {
                 // Adding a space of padding on either side
                 const new_field = try util.get_string_visual_length(
-                    self.gpa,
                     @field(new_row, field.name)
                 ) + 2;
                 const old_field = @field(self.row_widths, field.name);
@@ -170,7 +169,6 @@ pub fn GenerateTableType(
                 try writer.writeByte(' ');
                 const row_width = @field(row, field.name).len;
                 const visual_row_width = try util.get_string_visual_length(
-                    self.gpa,
                     @field(row, field.name)
                 );
                 // -1 because left padding has already been added
@@ -279,7 +277,7 @@ test "table/index.zig" {
 }
 
 test "Successfully make table with one row" {
-    std.debug.print("Successfully make table with one row\n\n", .{});
+    std.debug.print("Successfully make table with one row\n", .{});
 
     const Row = struct {
         col1: []const u8,
@@ -302,7 +300,7 @@ test "Successfully make table with one row" {
 }
 
 test "Make table with multiple rows and check row width" {
-    std.debug.print("Make table with multiple rows and check row width\n\n", .{});
+    std.debug.print("Make table with multiple rows and check row width\n", .{});
 
     const Row = struct {
         col1: []const u8,
@@ -335,6 +333,34 @@ test "Make table with multiple rows and check row width" {
     try expect(t.row_widths.col4 == 10);
 }
 
+test "Make table with one row with cyrillic characters and check row width" {
+    std.debug.print("Make table with one row with cyrillic characters and check row width\n\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+    const new_row1: Row = Row {
+        .col1 = "ВГ",
+        .col2 = "ДВГ",
+        .col3 = "ЧЧЧЧЧ",
+        .col4 = "СССС"
+    };
+    try t.add_row(new_row1);
+
+    try expect(t.rows.items.len == 1);
+    try expect(t.row_widths.col1 == 4);
+    try expect(t.row_widths.col2 == 5);
+    try expect(t.row_widths.col3 == 7);
+    try expect(t.row_widths.col4 == 6);
+    
+}
+
 test "Make table with one row with chinese characters and check row width" {
     std.debug.print("Make table with one row with chinese characters and check row width\n\n", .{});
 
@@ -355,13 +381,9 @@ test "Make table with one row with chinese characters and check row width" {
     };
     try t.add_row(new_row1);
 
-    try t.print_table();
-
-    std.debug.print("{d} {d} {d} {d}\n", .{t.row_widths.col1, t.row_widths.col2, t.row_widths.col3, t.row_widths.col4});
-
     try expect(t.rows.items.len == 1);
-    try expect(t.row_widths.col1 == 4);
-    try expect(t.row_widths.col2 == 3);
-    try expect(t.row_widths.col3 == 9);
-    try expect(t.row_widths.col4 == 5);
+    try expect(t.row_widths.col1 == 6);
+    try expect(t.row_widths.col2 == 4);
+    try expect(t.row_widths.col3 == 16);
+    try expect(t.row_widths.col4 == 8);
 }

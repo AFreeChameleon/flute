@@ -37,44 +37,40 @@ pub fn strip_ansi_codes(gpa: std.mem.Allocator, str: []const u8) ![]u8 {
     return try gpa.dupe(u8, str_buf[0..str_buf_idx]);
 }
 
-/// Zig implementation of:
-/// [https://github.com/sindresorhus/string-width/blob/main/index.js]
-/// Missing east asian width, probably won't implement that (sorry east asia)
-/// I'll probably have to write tests for this
-pub fn get_string_visual_length(gpa: std.mem.Allocator, str: []const u8) !u32 {
-    var width: u32 = 0;
-    const stripped_str = try strip_ansi_codes(gpa, str);
-    defer gpa.free(stripped_str);
-    for (stripped_str) |char| {
-        // Ignore control characters
-        if (
-            char <= 0x1F or
-            (char >= 0x7F and char <= 0x9F)
-        ) continue;
 
-        // Ignore zero-width characters
-        if (
-            (char >= 0x20_0B and char <= 0x20_0F) or
-            char == 0xFE_FF
-        ) continue;
-
-
-        // Ignore combining characters
-        if (
-            (char >= 0x3_00 and char <= 0x3_6F) or // Combining diacritical marks
-            (char >= 0x1A_B0 and char <= 0x1A_FF) or // Combining diacritical marks extended
-            (char >= 0x1D_C0 and char <= 0x1D_FF) or // Combining diacritical marks supplement
-            (char >= 0x20_D0 and char <= 0x20_FF) or // Combining diacritical marks for symbols
-            (char >= 0xFE_20 and char <= 0xFE_2F) // Combining half marks
-        ) continue;
-
-        // Ignore surrogate pairs
-        if (char >= 0xD8_00 and char <= 0xDF_FF) continue;
-
-        // Ignore variation selectors
-        if (char >= 0xFE_00 and char <= 0xFE_0F) continue;
-
-        width += 1;
+pub fn get_string_visual_length(str: []const u8) !u32 {
+    var iter: std.unicode.Utf8Iterator = .{.bytes = str, .i = 0};
+    var count: u32 = 0;
+    while (iter.nextCodepoint()) |code_point| {
+    	count += unicodeWidth(code_point);
     }
-    return width;
+    return count;
+}
+
+/// Return terminal display width (0, 1, or 2) for a single Unicode code point.
+/// Based on Unicode 15 East Asian Width table (simplified).
+fn unicodeWidth(code_point: u21) u8 {
+    // C0 and DEL
+    if (code_point == 0) return 0;
+    if (code_point < 32 or (code_point >= 0x7f and code_point < 0xa0)) return 0;
+
+    // Wide or Fullwidth ranges (based on wcwidth.c and Unicode TR11)
+    if ((code_point >= 0x1100 and code_point <= 0x115F) or
+        code_point == 0x2329 or code_point == 0x232A or
+        (code_point >= 0x2E80 and code_point <= 0xA4CF and code_point != 0x303F) or
+        (code_point >= 0xAC00 and code_point <= 0xD7A3) or
+        (code_point >= 0xF900 and code_point <= 0xFAFF) or
+        (code_point >= 0xFE10 and code_point <= 0xFE19) or
+        (code_point >= 0xFE30 and code_point <= 0xFE6F) or
+        (code_point >= 0xFF00 and code_point <= 0xFF60) or
+        (code_point >= 0xFFE0 and code_point <= 0xFFE6) or
+        (code_point >= 0x1F300 and code_point <= 0x1F64F) or
+        (code_point >= 0x1F900 and code_point <= 0x1F9FF) or
+        (code_point >= 0x20000 and code_point <= 0x3FFFD))
+    {
+        return 2;
+    }
+
+    // Everything else is narrow
+    return 1;
 }
