@@ -334,7 +334,7 @@ test "Make table with multiple rows and check row width" {
 }
 
 test "Make table with one row with cyrillic characters and check row width" {
-    std.debug.print("Make table with one row with cyrillic characters and check row width\n\n", .{});
+    std.debug.print("Make table with one row with cyrillic characters and check row width\n", .{});
 
     const Row = struct {
         col1: []const u8,

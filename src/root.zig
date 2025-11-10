@@ -8,5 +8,6 @@ const GenerateTableType = table.GenerateTableType;
 
 test "Main" {
     _ = @import("table/index.zig");
+    _ = @import("format/string.zig");
     std.testing.refAllDecls(@This());
 }
