@@ -78,3 +78,9 @@ var buf: [256]u8 = std.mem.zeroes([256]u8);
 const str = "test string";
 const buf_slice = try formatStringBuf(&buf, str, .Bold);
 ```
+
+# License
+
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
+Flute is under the GPL v3 license.
