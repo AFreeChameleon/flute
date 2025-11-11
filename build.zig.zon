@@ -1,7 +1,7 @@
 .{
     .name = .flute,
     .version = "0.1.0",
-    .fingerprint = 0x62f262de15dd7e4c,
+    .fingerprint = 0x8511bed5b2bf0420,
 
     .minimum_zig_version = "0.14.0",
 
