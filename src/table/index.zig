@@ -273,7 +273,7 @@ pub fn GenerateTableType(
 
 
 test "table/index.zig" {
-    std.debug.print("----- table/index.zig -----\n\n", .{});
+    std.debug.print("\n----- table/index.zig -----\n\n", .{});
 }
 
 test "Successfully make table with one row" {
