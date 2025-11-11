@@ -62,7 +62,7 @@ const Separators = struct {
 };
 
 const ROW_WIDTH: usize = 0;
-pub fn GenerateRowWidths(comptime Row: type) type {
+fn GenerateRowWidths(comptime Row: type) type {
     const row_fields = @typeInfo(Row).@"struct".fields;
     var fields: [row_fields.len]std.builtin.Type.StructField = undefined;
     inline for (row_fields, 0..) |field, i| {
