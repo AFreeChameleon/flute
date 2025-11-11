@@ -1,5 +1,5 @@
 .{
-    .name = .ascii_table,
+    .name = .flute,
     .version = "0.1.0",
     .fingerprint = 0x9e140b31d98fc6e5,
 
