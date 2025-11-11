@@ -11,6 +11,27 @@ Works on:
 
 ## Installation & Usage
 
+This works on Zig versions 0.14 and 0.15. To fetch the package, run:
+```
+zig fetch --save git+https://github.com/AFreeChameleon/flute/#add-tests
+```
+
+And in your `build.zig` add these lines underneath where your exe_mod is defined:
+```
+const flute = b.dependency("flute", .{
+    .target = target,
+    .optimize = optimize
+});
+const flute_mod = flute.module("flute");
+
+exe_mod.addImport("flute", flute_mod);
+```
+
+And now, you can import flute!
+```
+const flute = @import("flute");
+```
+
 ## Tables
 To get started, make a struct with every property being a string, this will be your row layout.
 ```
@@ -24,7 +45,9 @@ const Row = struct {
 
 And plug this into the `GenerateTableType` function. It's a comptime function so you can create it right underneath your row declaration!
 ```
-const Table = GenerateTableType(Row);
+const flute = @import("flute");
+
+const Table = flute.table.GenerateTableType(Row);
 ```
 
 Now to initialize the table, just run `.init` on the Table type. Also don't forget to run `.deinit` after it's used.
@@ -56,12 +79,14 @@ They come in both `Alloc` and `Buf` for allocators and buffers.
 
 To color or highlight text, run these functions passing in rgb values:
 ```
+const flute = @import("flute");
+
 const gpa = std.heap.page_allocator;
 
-const purple_text = try colorStringAlloc(gpa, "this is purple", 128, 0, 128);
+const purple_text = try flute.format.string.colorStringAlloc(gpa, "this is purple", 128, 0, 128);
 defer gpa.free(purple_text);
 
-const highlight_purple_text = try highlightStringAlloc(gpa, "this is highlighted purple", 128, 0, 128);
+const highlight_purple_text = try flute.format.string.highlightStringAlloc(gpa, "this is highlighted purple", 128, 0, 128);
 defer gpa.free(highlight_purple_text);
 ```
 
@@ -76,7 +101,7 @@ Run this:
 ```
 var buf: [256]u8 = std.mem.zeroes([256]u8);
 const str = "test string";
-const buf_slice = try formatStringBuf(&buf, str, .Bold);
+const buf_slice = try flute.format.string.formatStringBuf(&buf, str, .Bold);
 ```
 
 # License
