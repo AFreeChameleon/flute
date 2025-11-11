@@ -1,9 +1,17 @@
 # Flute
 A lightweight, modular and simple library for generating tables and formatting text in the terminal.
 
-## Tables
-Tables were designed with simplicity in mind and having control over utility.
+This package was designed with simplicity and control over utility.
 
+Works on:
+- Windows
+- Macos
+- Linux
+- FreeBSD
+
+## Installation & Usage
+
+## Tables
 To get started, make a struct with every property being a string, this will be your row layout.
 ```
 const Row = struct {
@@ -43,3 +51,30 @@ try t.printTable();
 
 ## String formatting
 These are a couple of functions to color, highlight and format strings for your terminal.
+
+They come in both `Alloc` and `Buf` for allocators and buffers.
+
+To color or highlight text, run these functions passing in rgb values:
+```
+const gpa = std.heap.page_allocator;
+
+const purple_text = try colorStringAlloc(gpa, "this is purple", 128, 0, 128);
+defer gpa.free(purple_text);
+
+const highlight_purple_text = try highlightStringAlloc(gpa, "this is highlighted purple", 128, 0, 128);
+defer gpa.free(highlight_purple_text);
+```
+
+To format strings in either:
+- Bold
+- Dim
+- Underline
+- Blink
+- Reverse (invert the foreground and background colors)
+- Hidden
+Run this:
+```
+var buf: [256]u8 = std.mem.zeroes([256]u8);
+const str = "test string";
+const buf_slice = try formatStringBuf(&buf, str, .Bold);
+```
