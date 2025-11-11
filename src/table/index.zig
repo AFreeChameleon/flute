@@ -7,6 +7,12 @@ const log = @import("./log.zig");
 const test_gpa = std.testing.allocator;
 const expect = std.testing.expect;
 
+
+const Output = enum {
+    Stdout,
+    Stderr
+};
+
 const Separators = struct {
     const Chars = struct { left: []const u8, right: []const u8, separator: []const u8 };
 
@@ -156,10 +162,9 @@ pub fn GenerateTableType(
             try self.printBorder(Separators.bottom);
         }
 
-        fn printRow(self: *Self, row: *const Row) !void {
-            var buf_list = std.ArrayList(u8).init(self.gpa);
-            defer buf_list.deinit();
-            var writer = buf_list.writer();
+        fn printRow(self: *Self, row: *const Row, output: Output) !void {
+            const writer = if (output == .Stdout)
+                std.io.getStdOut().writer() else std.io.getStdErr().writer();
 
             for (Separators.vert_line) |byte| {
                 try writer.writeByte(byte);
@@ -191,13 +196,12 @@ pub fn GenerateTableType(
                 try writer.writeByte(byte);
             }
 
-            try log.print("{s}\n", .{buf_list.items});
+            try writer.writeByte('\n');
         }
 
-        fn printBorder(self: *Self, chars: Separators.Chars) !void {
-            var buf_list = std.ArrayList(u8).init(self.gpa);
-            defer buf_list.deinit();
-            var writer = buf_list.writer();
+        fn printBorder(self: *Self, chars: Separators.Chars, output: Output) !void {
+            const writer = if (output == .Stdout)
+                std.io.getStdOut().writer() else std.io.getStdErr().writer();
 
             for (chars.left) |byte| {
                 try writer.writeByte(byte);
@@ -220,7 +224,7 @@ pub fn GenerateTableType(
             for (chars.right) |byte| {
                 try writer.writeByte(byte);
             }
-            try log.print("{s}\n", .{buf_list.items});
+            try writer.writeByte('\n');
         }
 
         pub fn getTotalRowWidth(self: *Self) usize {
