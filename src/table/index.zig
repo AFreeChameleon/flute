@@ -543,7 +543,6 @@ test "Count amount of rows cleared on custom table" {
         try t.printRow(idx, wr);
     }
     try t.printBorder(Borders.bottom, wr);
-    std.debug.print("{s}", .{result.items});
 
     try t.clear(wr);
 
@@ -553,4 +552,41 @@ test "Count amount of rows cleared on custom table" {
     try expect(std.mem.eql(u8, result.items[result.items.len - 21..result.items.len - 14], "\x1b[A\x1b[2K"));
     try expect(std.mem.eql(u8, result.items[result.items.len - 28..result.items.len - 21], "\x1b[A\x1b[2K"));
     try expect(std.mem.eql(u8, result.items[result.items.len - 35..result.items.len - 28], "\x1b[A\x1b[2K"));
+}
+
+test "Count amount of rows with a wrapped table" {
+    std.debug.print("Count amount of rows with a wrapped table\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+    };
+
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+
+    try t.addRow(.{
+        .col1 = "12",
+    });
+    try t.addRow(.{
+        .col1 = "2",
+    });
+    
+    var result = std.ArrayList(u8).init(test_gpa);
+    defer result.deinit();
+
+    const wr = result.writer();
+    try t.printTable(wr);
+
+    try t.clear(wr);
+
+    const fl_row_width: f32 = @floatFromInt(t.getTotalTableWidth());
+    const fl_window_cols: f32 = @floatFromInt(try log.getWindowCols());
+
+    const total_lines_printed = Table.calculateTotalRows(
+        fl_row_width, fl_window_cols, t.lines_printed
+    );
+
+    try expect(total_lines_printed == 8);
+    try expect(std.mem.eql(u8, result.items[result.items.len - 56..result.items.len - 49], "\x1b[A\x1b[2K"));
 }
