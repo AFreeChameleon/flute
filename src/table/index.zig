@@ -8,29 +8,32 @@ const test_gpa = std.testing.allocator;
 const expect = std.testing.expect;
 
 
-const Separators = struct {
-    const Chars = struct { left: []const u8, right: []const u8, separator: []const u8 };
+/// This is what controls the borders.
+/// To change the characters used in the borders edit this struct like:
+/// ```
+/// flute.table.Borders.top = flute.table.Borders.Chars {
+///     .left = "┌",
+///     .right = "┐",
+///     .separator = "┬"
+/// };
+/// ```
+pub const Borders = struct {
+    pub const Chars = struct { left: []const u8, right: []const u8, separator: []const u8 };
 
-    const top = Chars{
+    pub var top = Chars{
         .left = "+",
         .right = "+",
         .separator = "+",
     };
 
-    const bottom = Chars{
+    pub var bottom = Chars{
         .left = "+",
         .right = "+",
         .separator = "+",
     };
 
-    const middle = Chars{
-        .left = "+",
-        .right = "+",
-        .separator = "+",
-    };
-
-    const hori_line = "-";
-    const vert_line = "|";
+    pub var hori_line = "-";
+    pub var vert_line = "|";
 
     // These cool unicode separators cause gibberish on some terminals
     // so I'll keep them commented until I can include them on non utf8 terminals
@@ -98,14 +101,15 @@ pub fn GenerateTableType(
         gpa: std.mem.Allocator,
         row_widths: RowWidths,
         rows: std.ArrayList(Row),
+        lines_printed: u32,
 
         pub fn init(gpa: std.mem.Allocator) !Self {
-            log.init();
             const rows = std.ArrayList(Row).init(gpa);
             const table = Self {
                 .rows = rows,
                 .row_widths = RowWidths{},
-                .gpa = gpa
+                .gpa = gpa,
+                .lines_printed = 0
             };
             return table;
         }
@@ -116,16 +120,23 @@ pub fn GenerateTableType(
             self.rows.deinit();
         }
 
+        /// Adds a row to the table
         pub fn addRow(self: *Self, row: Row) !void {
             try self.rows.append(row);
             try self.updateRowWidths(&row);
         }
 
-        pub fn removeRows(self: *Self, num_rows: usize) !void {
-            for (0..num_rows) |_| {
-                self.rows.items[self.rows.items.len - 1].deinit();
-                _ = self.rows.swapRemove(self.rows.items.len - 1);
-            }
+        /// Adds a row to the table
+        // pub fn removeRows(self: *Self, num_rows: usize) !void {
+        //     for (0..num_rows) |_| {
+        //         self.rows.items[self.rows.items.len - 1].deinit();
+        //         _ = self.rows.swapRemove(self.rows.items.len - 1);
+        //     }
+        // }
+
+        /// Removes a row from the table
+        pub fn removeRow(self: *Self, idx: usize) void {
+            _ = self.rows.orderedRemove(idx);
         }
 
         fn refreshAllRowWidths(self: *Self) !void {
@@ -135,7 +146,7 @@ pub fn GenerateTableType(
         }
 
         /// Iterates over every field and updates row widths to make it responsive
-        pub fn updateRowWidths(self: *Self, new_row: *const Row) !void {
+        fn updateRowWidths(self: *Self, new_row: *const Row) !void {
             inline for (@typeInfo(RowWidths).@"struct".fields) |field| {
                 // Adding a space of padding on either side
                 const new_field = try util.getStringVisualLength(
@@ -148,17 +159,24 @@ pub fn GenerateTableType(
             }
         }
 
-        /// Prints all headers and rows in the table
+        /// Prints all rows in the table
         pub fn printTable(self: *Self, writer: anytype) !void {
-            try self.printBorder(Separators.top, writer);
-            for (self.rows.items) |row| {
-                try self.printRow(&row, writer);
+            try self.printBorder(Borders.top, writer);
+            for (0..self.rows.items.len) |i| {
+                try self.printRow(i, writer);
             }
-            try self.printBorder(Separators.bottom, writer);
+            try self.printBorder(Borders.bottom, writer);
         }
 
-        fn printRow(self: *Self, row: *const Row, writer: anytype) !void {
-            for (Separators.vert_line) |byte| {
+        /// Prints row in the table
+        pub fn printRow(self: *Self, idx: usize, writer: anytype) !void {
+            if (idx > self.rows.items.len) {
+                return error.RowNotExists;
+            }
+            self.lines_printed += 1;
+
+            const row = self.rows.items[idx];
+            for (Borders.vert_line) |byte| {
                 try writer.writeByte(byte);
             }
 
@@ -178,27 +196,29 @@ pub fn GenerateTableType(
                 }
 
                 if (i != @typeInfo(RowWidths).@"struct".fields.len - 1) {
-                    for (Separators.vert_line) |byte| {
+                    for (Borders.vert_line) |byte| {
                         try writer.writeByte(byte);
                     }
                 }
             }
 
-            for (Separators.vert_line) |byte| {
+            for (Borders.vert_line) |byte| {
                 try writer.writeByte(byte);
             }
 
             try writer.writeByte('\n');
         }
 
-        fn printBorder(self: *Self, chars: Separators.Chars, writer: anytype) !void {
+        /// Prints a line of the table's border.
+        pub fn printBorder(self: *Self, chars: Borders.Chars, writer: anytype) !void {
+            self.lines_printed += 1;
             for (chars.left) |byte| {
                 try writer.writeByte(byte);
             }
 
             inline for (@typeInfo(RowWidths).@"struct".fields, 0..) |field, i| {
                 for (0..@field(self.row_widths, field.name)) |_| {
-                    for (Separators.hori_line) |byte| {
+                    for (Borders.hori_line) |byte| {
                         try writer.writeByte(byte);
                     }
                 }
@@ -216,7 +236,8 @@ pub fn GenerateTableType(
             try writer.writeByte('\n');
         }
 
-        pub fn getTotalRowWidth(self: *Self) usize {
+        /// Gets the width of the table
+        pub fn getTotalTableWidth(self: *Self) usize {
             const fields = @typeInfo(RowWidths).@"struct".fields;
 
             // Borders in between
@@ -228,38 +249,28 @@ pub fn GenerateTableType(
         }
 
         /// Clears the printed table
-        pub fn clear(self: *Self) !void {
-            const num_of_rows = self.rows.items.len;
+        pub fn clear(self: *Self, writer: anytype) !void {
             // Length of table row in terminal columns
-            const fl_row_width: f32 = @floatFromInt(self.getTotalRowWidth());
+            const fl_row_width: f32 = @floatFromInt(self.getTotalTableWidth());
             const fl_window_cols: f32 = @floatFromInt(try log.getWindowCols());
 
-            const total_rows_printed = calculate_total_rows(fl_row_width, fl_window_cols, num_of_rows);
+            const total_lines_printed = calculateTotalRows(
+                fl_row_width, fl_window_cols, self.lines_printed
+            );
 
             // VT100 go up 1 line and erase it
-            for (0..total_rows_printed) |_| try log.print("\x1b[A\x1b[2K", .{});
+            for (0..total_lines_printed) |_| try writer.writeAll("\x1b[A\x1b[2K");
         }
 
-        fn calculate_total_rows(row_width: f32, window_cols: f32, num_of_rows: usize) usize {
+        fn calculateTotalRows(row_width: f32, window_cols: f32, num_of_rows: usize) usize {
             const overlap: usize = if (window_cols < row_width)
                 @intFromFloat(@ceil(row_width / window_cols))
                 else
                     1;
 
-                // +2 for the top and bottom borders
-                const total_rows_printed: usize = (num_of_rows * overlap);
-                return total_rows_printed;
-        }
-
-        pub fn reset(self: *Self) void {
-            for (self.rows.items) |*it| {
-                if (!it.header) {
-                    it.deinit();
-                }
-            }
-            self.rows.clearAndFree();
-            self.rows.clearRetainingCapacity();
-            self.row_widths = RowWidths{};
+            // +2 for the top and bottom borders
+            const total_lines_printed: usize = (num_of_rows * overlap);
+            return total_lines_printed;
         }
     };
 }
@@ -379,4 +390,167 @@ test "Make table with one row with chinese characters and check row width" {
     try expect(t.row_widths.col2 == 4);
     try expect(t.row_widths.col3 == 16);
     try expect(t.row_widths.col4 == 8);
+}
+
+test "Remove one row" {
+    std.debug.print("Remove one row\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+
+    try t.addRow(.{
+        .col1 = "1",
+        .col2 = "1",
+        .col3 = "1",
+        .col4 = "1",
+    });
+    try t.addRow(.{
+        .col1 = "2",
+        .col2 = "2",
+        .col3 = "2",
+        .col4 = "2",
+    });
+
+    t.removeRow(0);
+
+    try expect(std.mem.eql(u8, t.rows.items[0].col1, "2"));
+}
+
+test "Count amount of rows printed" {
+    std.debug.print("Count amount of rows printed\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+
+    try t.addRow(.{
+        .col1 = "1",
+        .col2 = "1",
+        .col3 = "1",
+        .col4 = "1",
+    });
+    try t.addRow(.{
+        .col1 = "2",
+        .col2 = "2",
+        .col3 = "2",
+        .col4 = "2",
+    });
+    
+    var result = std.ArrayList(u8).init(test_gpa);
+    defer result.deinit();
+
+    const wr = result.writer();
+    try t.printTable(wr);
+
+    try expect(t.lines_printed == 4);
+    try expect(std.mem.eql(u8, result.items[0..17], "+---+---+---+---+"));
+}
+
+test "Count amount of rows cleared" {
+    std.debug.print("Count amount of rows cleared\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+
+    try t.addRow(.{
+        .col1 = "1",
+        .col2 = "1",
+        .col3 = "1",
+        .col4 = "1",
+    });
+    try t.addRow(.{
+        .col1 = "2",
+        .col2 = "2",
+        .col3 = "2",
+        .col4 = "2",
+    });
+    
+    var result = std.ArrayList(u8).init(test_gpa);
+    defer result.deinit();
+
+    const wr = result.writer();
+    try t.printTable(wr);
+
+    try t.clear(wr);
+
+    try expect(t.lines_printed == 4);
+    try expect(std.mem.eql(u8, result.items[result.items.len - 7..], "\x1b[A\x1b[2K"));
+    try expect(std.mem.eql(u8, result.items[result.items.len - 14..result.items.len - 7], "\x1b[A\x1b[2K"));
+    try expect(std.mem.eql(u8, result.items[result.items.len - 21..result.items.len - 14], "\x1b[A\x1b[2K"));
+    try expect(std.mem.eql(u8, result.items[result.items.len - 28..result.items.len - 21], "\x1b[A\x1b[2K"));
+    try expect(result.items[28] != 'K');
+}
+
+test "Count amount of rows cleared on custom table" {
+    std.debug.print("Count amount of rows cleared on custom table\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+        col2: []const u8,
+        col3: []const u8,
+        col4: []const u8,
+    };
+
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+
+    try t.addRow(.{
+        .col1 = "1",
+        .col2 = "1",
+        .col3 = "1",
+        .col4 = "1",
+    });
+    try t.addRow(.{
+        .col1 = "2",
+        .col2 = "2",
+        .col3 = "2",
+        .col4 = "2",
+    });
+    
+    var result = std.ArrayList(u8).init(test_gpa);
+    defer result.deinit();
+
+    const wr = result.writer();
+
+    try t.printBorder(Borders.top, wr);
+    try t.printRow(0, wr);
+    try t.printBorder(Borders.top, wr);
+    for (1..t.rows.items.len) |idx| {
+        try t.printRow(idx, wr);
+    }
+    try t.printBorder(Borders.bottom, wr);
+    std.debug.print("{s}", .{result.items});
+
+    try t.clear(wr);
+
+    try expect(t.lines_printed == 5);
+    try expect(std.mem.eql(u8, result.items[result.items.len - 7..], "\x1b[A\x1b[2K"));
+    try expect(std.mem.eql(u8, result.items[result.items.len - 14..result.items.len - 7], "\x1b[A\x1b[2K"));
+    try expect(std.mem.eql(u8, result.items[result.items.len - 21..result.items.len - 14], "\x1b[A\x1b[2K"));
+    try expect(std.mem.eql(u8, result.items[result.items.len - 28..result.items.len - 21], "\x1b[A\x1b[2K"));
+    try expect(std.mem.eql(u8, result.items[result.items.len - 35..result.items.len - 28], "\x1b[A\x1b[2K"));
 }

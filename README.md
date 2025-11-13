@@ -72,6 +72,89 @@ try t.addRow(row);
 try t.printTable();
 ```
 
+Here's a full working example for you:
+```
+const std = @import("std");
+const flute = @import("flute");
+
+const Row = struct {
+    first_name: []const u8,
+    last_name: []const u8,
+    date_of_birth: []const u8,
+    favourite_food: []const u8,
+};
+const Table = flute.table.GenerateTableType(Row);
+
+fn main() !void {
+    const gpa = std.heap.page_allocator;
+    const t = Table.init(gpa);
+    defer t.deinit();
+
+    try t.addRow(.{
+        first_name: "John",
+        last_name: "Doe",
+        date_of_birth: "01/01/2000",
+        favourite_food: "Fries",
+    });
+    try t.addRow(.{
+        first_name: "Jane",
+        last_name: "Doe",
+        date_of_birth: "01/01/2000",
+        favourite_food: "Fries",
+    });
+    try t.printTable();
+}
+```
+
+### Borders
+To change the table borders, all you'll need to do is edit the `Borders` struct and put in your own values.
+
+```
+flute.table.Borders.top = flute.table.Borders.Chars {
+    .left = "┌",
+    .right = "┐",
+    .separator = "┬"
+};
+flute.table.Borders.bottom = flute.table.Borders.Chars {
+    .left = "└",
+    .right = "┘",
+    .separator = "┴",
+};
+flute.table.Borders.hori_line = "─";
+flute.table.Borders.vert_line = "│";
+```
+
+### Custom layout
+"I want to make my table have a border underneath my headers"
+
+While there isn't a specific function to cater to this customisation, what I instead looked to do was
+make it easy to make whatever you want rather than using the built in `printTable` function.
+
+Take the example from before, how would I be able to add a border in between the two?
+```
+try t.addRow(.{
+    first_name: "John",
+    last_name: "Doe",
+    date_of_birth: "01/01/2000",
+    favourite_food: "Fries",
+});
+try t.addRow(.{
+    first_name: "Jane",
+    last_name: "Doe",
+    date_of_birth: "01/01/2000",
+    favourite_food: "Fries",
+});
+
+try t.printBorder(flute.Borders.top, wr);
+try t.printRow(0, wr);
+// Or whatever characters you'd like
+try t.printBorder(flute.Borders.top, wr);
+for (1..t.rows.items.len) |idx| {
+    try t.printRow(idx, wr);
+}
+try t.printBorder(flute.Borders.bottom, wr);
+```
+
 ## String formatting
 These are a couple of functions to color, highlight and format strings for your terminal.
 
