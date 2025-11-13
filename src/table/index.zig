@@ -8,11 +8,6 @@ const test_gpa = std.testing.allocator;
 const expect = std.testing.expect;
 
 
-const Output = enum {
-    Stdout,
-    Stderr
-};
-
 const Separators = struct {
     const Chars = struct { left: []const u8, right: []const u8, separator: []const u8 };
 
@@ -154,18 +149,15 @@ pub fn GenerateTableType(
         }
 
         /// Prints all headers and rows in the table
-        pub fn printTable(self: *Self) !void {
-            try self.printBorder(Separators.top);
+        pub fn printTable(self: *Self, writer: anytype) !void {
+            try self.printBorder(Separators.top, writer);
             for (self.rows.items) |row| {
-                try self.printRow(&row);
+                try self.printRow(&row, writer);
             }
-            try self.printBorder(Separators.bottom);
+            try self.printBorder(Separators.bottom, writer);
         }
 
-        fn printRow(self: *Self, row: *const Row, output: Output) !void {
-            const writer = if (output == .Stdout)
-                std.io.getStdOut().writer() else std.io.getStdErr().writer();
-
+        fn printRow(self: *Self, row: *const Row, writer: anytype) !void {
             for (Separators.vert_line) |byte| {
                 try writer.writeByte(byte);
             }
@@ -199,10 +191,7 @@ pub fn GenerateTableType(
             try writer.writeByte('\n');
         }
 
-        fn printBorder(self: *Self, chars: Separators.Chars, output: Output) !void {
-            const writer = if (output == .Stdout)
-                std.io.getStdOut().writer() else std.io.getStdErr().writer();
-
+        fn printBorder(self: *Self, chars: Separators.Chars, writer: anytype) !void {
             for (chars.left) |byte| {
                 try writer.writeByte(byte);
             }
