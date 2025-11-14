@@ -71,7 +71,7 @@ fn GenerateRowWidths(comptime Row: type) type {
             .name = field.name,
             .type = usize,
             .default_value_ptr = &ROW_WIDTH,
-            .alignment = 0,
+            .alignment = @alignOf(usize),
             .is_comptime = false
         };
     }
@@ -104,9 +104,8 @@ pub fn GenerateTableType(
         lines_printed: u32,
 
         pub fn init(gpa: std.mem.Allocator) !Self {
-            const rows = std.ArrayList(Row).init(gpa);
             const table = Self {
-                .rows = rows,
+                .rows = .empty,
                 .row_widths = RowWidths{},
                 .gpa = gpa,
                 .lines_printed = 0
@@ -115,14 +114,14 @@ pub fn GenerateTableType(
         }
 
         pub fn deinit(self: *Self) void {
-            self.rows.clearAndFree();
+            self.rows.clearAndFree(self.gpa);
             self.rows.clearRetainingCapacity();
-            self.rows.deinit();
+            self.rows.deinit(self.gpa);
         }
 
         /// Adds a row to the table
         pub fn addRow(self: *Self, row: Row) !void {
-            try self.rows.append(row);
+            try self.rows.append(self.gpa, row);
             try self.updateRowWidths(&row);
         }
 
@@ -451,10 +450,10 @@ test "Count amount of rows printed" {
         .col4 = "2",
     });
     
-    var result = std.ArrayList(u8).init(test_gpa);
-    defer result.deinit();
+    var result: std.ArrayList(u8) = .empty;
+    defer result.deinit(test_gpa);
 
-    const wr = result.writer();
+    const wr = result.writer(test_gpa);
     try t.printTable(wr);
 
     try expect(t.lines_printed == 4);
@@ -488,10 +487,10 @@ test "Count amount of rows cleared" {
         .col4 = "2",
     });
     
-    var result = std.ArrayList(u8).init(test_gpa);
-    defer result.deinit();
+    var result: std.ArrayList(u8) = .empty;
+    defer result.deinit(test_gpa);
 
-    const wr = result.writer();
+    const wr = result.writer(test_gpa);
     try t.printTable(wr);
 
     try t.clear(wr);
@@ -531,10 +530,10 @@ test "Count amount of rows cleared on custom table" {
         .col4 = "2",
     });
     
-    var result = std.ArrayList(u8).init(test_gpa);
-    defer result.deinit();
+    var result: std.ArrayList(u8) = .empty;
+    defer result.deinit(test_gpa);
 
-    const wr = result.writer();
+    const wr = result.writer(test_gpa);
 
     try t.printBorder(Borders.top, wr);
     try t.printRow(0, wr);
@@ -572,10 +571,10 @@ test "Count amount of rows with a wrapped table" {
         .col1 = "2",
     });
     
-    var result = std.ArrayList(u8).init(test_gpa);
-    defer result.deinit();
+    var result: std.ArrayList(u8) = .empty;
+    defer result.deinit(test_gpa);
 
-    const wr = result.writer();
+    const wr = result.writer(test_gpa);
     try t.printTable(wr);
 
     try t.clear(wr);
