@@ -9,14 +9,12 @@ pub fn getStringVisualLength(str: []const u8) !u32 {
     return count;
 }
 
-/// Return terminal display width (0, 1, or 2) for a single Unicode code point.
-/// Based on Unicode 15 East Asian Width table (simplified).
 fn unicodeWidth(code_point: u21) u8 {
     // C0 and DEL
     if (code_point == 0) return 0;
     if (code_point < 32 or (code_point >= 0x7f and code_point < 0xa0)) return 0;
 
-    // Wide or Fullwidth ranges (based on wcwidth.c and Unicode TR11)
+    // wide or Fullwidth ranges (based on wcwidth.c and Unicode TR11)
     if ((code_point >= 0x1100 and code_point <= 0x115F) or
         code_point == 0x2329 or code_point == 0x232A or
         (code_point >= 0x2E80 and code_point <= 0xA4CF and code_point != 0x303F) or
@@ -33,6 +31,5 @@ fn unicodeWidth(code_point: u21) u8 {
         return 2;
     }
 
-    // Everything else is narrow
     return 1;
 }

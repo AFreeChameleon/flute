@@ -5,23 +5,17 @@ pub var stdout_file: std.fs.File = undefined;
 pub var stderr_file: std.fs.File = undefined;
 const TIOCGWINSZ = 0x5413;
 
-pub fn init() void {
-    stdout_file = std.io.getStdOut();
+fn printErr(comptime text: []const u8, args: anytype) !void {
     stderr_file = std.io.getStdErr();
-}
-
-pub fn print(comptime text: []const u8, args: anytype) !void {
-    const stdout = stdout_file.writer();
-    try stdout.print(text, args);
-}
-
-pub fn printErr(comptime text: []const u8, args: anytype) !void {
     const stderr = stderr_file.writer();
     try stderr.print(text, args);
 }
 
 /// Sets the cols to whatever columns the window has
 pub fn getWindowCols() !u32 {
+    if (builtin.is_test) {
+        return 5;
+    }
     var cols: u32 = 0;
     if (comptime builtin.target.os.tag != .windows) {
         var w: std.posix.winsize = undefined;
