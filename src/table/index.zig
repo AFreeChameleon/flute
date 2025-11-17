@@ -87,7 +87,7 @@ fn GenerateRowWidths(comptime Row: type) type {
     return RowWidths;
 }
 
-/// This dynamically generates the type for:
+/// This dynamically generates the type for your table:
 /// ```
 /// const Table = GenerateTableType(MainRow, MainRowWidths);
 /// const table = Table.init(true);
