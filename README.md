@@ -91,16 +91,16 @@ fn main() !void {
     defer t.deinit();
 
     try t.addRow(.{
-        first_name: "John",
-        last_name: "Doe",
-        date_of_birth: "01/01/2000",
-        favourite_food: "Fries",
+        .first_name = "John",
+        .last_name = "Doe",
+        .date_of_birth = "01/01/2000",
+        .favourite_food = "Fries",
     });
     try t.addRow(.{
-        first_name: "Jane",
-        last_name: "Doe",
-        date_of_birth: "01/01/2000",
-        favourite_food: "Fries",
+        .first_name = "Jane",
+        .last_name = "Doe",
+        .date_of_birth = "01/01/2000",
+        .favourite_food = "Fries",
     });
     try t.printTable();
 }
@@ -133,26 +133,26 @@ make it easy to make whatever you want rather than using the built in `printTabl
 Take the example from before, how would I be able to add a border in between the two?
 ```
 try t.addRow(.{
-    first_name: "John",
-    last_name: "Doe",
-    date_of_birth: "01/01/2000",
-    favourite_food: "Fries",
+    .first_name = "John",
+    .last_name = "Doe",
+    .date_of_birth = "01/01/2000",
+    .favourite_food = "Fries",
 });
 try t.addRow(.{
-    first_name: "Jane",
-    last_name: "Doe",
-    date_of_birth: "01/01/2000",
-    favourite_food: "Fries",
+    .first_name = "Jane",
+    .last_name = "Doe",
+    .date_of_birth = "01/01/2000",
+    .favourite_food = "Fries",
 });
 
-try t.printBorder(flute.Borders.top, wr);
+try t.printBorder(flute.table.Borders.top, wr);
 try t.printRow(0, wr);
 // Or whatever characters you'd like
-try t.printBorder(flute.Borders.top, wr);
+try t.printBorder(flute.table.Borders.top, wr);
 for (1..t.rows.items.len) |idx| {
     try t.printRow(idx, wr);
 }
-try t.printBorder(flute.Borders.bottom, wr);
+try t.printBorder(flute.table.Borders.bottom, wr);
 ```
 
 ## String formatting
