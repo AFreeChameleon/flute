@@ -454,6 +454,7 @@ test "Count amount of rows printed" {
     defer result.deinit(test_gpa);
 
     const wr = result.writer(test_gpa);
+
     try t.printTable(wr);
 
     try expect(t.lines_printed == 4);
