@@ -2,6 +2,21 @@ const std = @import("std");
 const expect = std.testing.expect;
 const test_gpa = std.testing.allocator;
 
+pub fn ColorStringWidthPadding(comptime rgb: [3]u8) usize {
+    const str = "\x1B[38;2;;;m\x1B[0m";
+    var sum = str.len;
+
+    for (rgb) |v| {
+        if (v > 9) {
+            sum += 2;
+        } else if (v > 99) {
+            sum += 3;
+        } else {
+            sum += 1;
+        }
+    }
+}
+
 /// Coloring strings with ANSI escape codes using a buffer
 pub fn colorStringBuf(buf: []u8, str: []const u8, r: u8, g: u8, b: u8) ![]const u8 {
     const final_str: []u8 = try std.fmt.bufPrint(
