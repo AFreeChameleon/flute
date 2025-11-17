@@ -71,7 +71,7 @@ fn GenerateRowWidths(comptime Row: type) type {
             .name = field.name,
             .type = usize,
             .default_value_ptr = &ROW_WIDTH,
-            .alignment = 0,
+            .alignment = @alignOf(usize),
             .is_comptime = false
         };
     }
@@ -87,10 +87,11 @@ fn GenerateRowWidths(comptime Row: type) type {
     return RowWidths;
 }
 
-/// Because there are multiple table types, the main one and the stats, this
-/// dynamically generates the type for either:
+/// This dynamically generates the type for your table:
+/// ```
 /// const Table = GenerateTableType(MainRow, MainRowWidths);
 /// const table = Table.init(true);
+/// ```
 pub fn GenerateTableType(
     comptime Row: type
 ) type {
