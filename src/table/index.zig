@@ -87,10 +87,11 @@ fn GenerateRowWidths(comptime Row: type) type {
     return RowWidths;
 }
 
-/// Because there are multiple table types, the main one and the stats, this
-/// dynamically generates the type for either:
+/// This dynamically generates the type for:
+/// ```
 /// const Table = GenerateTableType(MainRow, MainRowWidths);
 /// const table = Table.init(true);
+/// ```
 pub fn GenerateTableType(
     comptime Row: type
 ) type {

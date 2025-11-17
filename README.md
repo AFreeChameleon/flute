@@ -13,7 +13,7 @@ Works on:
 
 This works on Zig versions 0.14 and 0.15. To fetch the package, run:
 ```
-zig fetch --save git+https://github.com/AFreeChameleon/flute/#add-tests
+zig fetch --save git+https://github.com/AFreeChameleon/flute/#0.15
 ```
 
 And in your `build.zig` add these lines underneath where your exe_mod is defined:
@@ -58,7 +58,7 @@ defer t.deinit();
 ```
 NOTE: `.deinit` doesn't free any column strings.
 
-To add rows, create a struct of your row type and put it into the `.addRow` function. To print the table, run `.printTable`:
+To add rows, create a struct of your row type and put it into the `.addRow` function. To print the table, run `.printTable` and flush afterwards:
 
 ```
 const row = Row {
@@ -69,7 +69,12 @@ const row = Row {
 };
 
 try t.addRow(row);
-try t.printTable();
+var stdout_buf: [512]u8 = std.mem.zeroes([512]u8);
+var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+const stdout: *std.Io.Writer = &stdout_writer.interface;
+
+try t.printTable(stdout);
+try stdout.flush();
 ```
 
 Here's a full working example for you:
@@ -85,24 +90,30 @@ const Row = struct {
 };
 const Table = flute.table.GenerateTableType(Row);
 
-fn main() !void {
+pub fn main() !void {
     const gpa = std.heap.page_allocator;
-    const t = Table.init(gpa);
+    var t = try Table.init(gpa);
     defer t.deinit();
 
     try t.addRow(.{
-        first_name: "John",
-        last_name: "Doe",
-        date_of_birth: "01/01/2000",
-        favourite_food: "Fries",
+        .first_name = "John",
+        .last_name = "Doe",
+        .date_of_birth = "01/01/2000",
+        .favourite_food = "Fries",
     });
     try t.addRow(.{
-        first_name: "Jane",
-        last_name: "Doe",
-        date_of_birth: "01/01/2000",
-        favourite_food: "Fries",
+        .first_name = "Jane",
+        .last_name = "Doe",
+        .date_of_birth = "01/01/2000",
+        .favourite_food = "Fries",
     });
-    try t.printTable();
+
+    var stdout_buf: [512]u8 = std.mem.zeroes([512]u8);
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+    const stdout: *std.Io.Writer = &stdout_writer.interface;
+    
+    try t.printTable(stdout);
+    try stdout.flush();
 }
 ```
 
@@ -130,29 +141,35 @@ flute.table.Borders.vert_line = "│";
 While there isn't a specific function to cater to this customisation, what I instead looked to do was
 make it easy to make whatever you want rather than using the built in `printTable` function.
 
-Take the example from before, how would I be able to add a border in between the two?
+Take the example from before, how would I be able to add a border in between the two rows?
 ```
 try t.addRow(.{
-    first_name: "John",
-    last_name: "Doe",
-    date_of_birth: "01/01/2000",
-    favourite_food: "Fries",
+    .first_name = "John",
+    .last_name = "Doe",
+    .date_of_birth = "01/01/2000",
+    .favourite_food = "Fries",
 });
 try t.addRow(.{
-    first_name: "Jane",
-    last_name: "Doe",
-    date_of_birth: "01/01/2000",
-    favourite_food: "Fries",
+    .first_name = "Jane",
+    .last_name = "Doe",
+    .date_of_birth = "01/01/2000",
+    .favourite_food = "Fries",
 });
 
-try t.printBorder(flute.Borders.top, wr);
-try t.printRow(0, wr);
+var stdout_buf: [512]u8 = std.mem.zeroes([512]u8);
+var stdout_writer = std.fs.File.stdout().writer(&stdout_buf);
+const stdout: *std.Io.Writer = &stdout_writer.interface;
+
+try t.printBorder(flute.table.Borders.top, stdout);
+try t.printRow(0, stdout);
 // Or whatever characters you'd like
-try t.printBorder(flute.Borders.top, wr);
+try t.printBorder(flute.table.Borders.top, stdout);
 for (1..t.rows.items.len) |idx| {
-    try t.printRow(idx, wr);
+    try t.printRow(idx, stdout);
 }
-try t.printBorder(flute.Borders.bottom, wr);
+try t.printBorder(flute.table.Borders.bottom, stdout);
+
+try stdout.flush();
 ```
 
 ## String formatting
