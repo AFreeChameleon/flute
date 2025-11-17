@@ -15,6 +15,7 @@ pub fn ColorStringWidthPadding(comptime rgb: [3]u8) usize {
             sum += 1;
         }
     }
+    return sum;
 }
 
 /// Coloring strings with ANSI escape codes using a buffer
