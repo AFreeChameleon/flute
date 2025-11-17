@@ -13,7 +13,7 @@ Works on:
 
 This works on Zig versions 0.14 and 0.15. To fetch the package, run:
 ```
-zig fetch --save git+https://github.com/AFreeChameleon/flute/#add-tests
+zig fetch --save git+https://github.com/AFreeChameleon/flute/#0.14
 ```
 
 And in your `build.zig` add these lines underneath where your exe_mod is defined:
