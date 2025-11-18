@@ -8,9 +8,9 @@ pub fn ColorStringWidthPadding(comptime rgb: [3]u8) usize {
 
     for (rgb) |v| {
         if (v > 99) {
-            sum += 2;
-        } else if (v > 9) {
             sum += 3;
+        } else if (v > 9) {
+            sum += 2;
         } else {
             sum += 1;
         }
