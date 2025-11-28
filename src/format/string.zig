@@ -2,6 +2,8 @@ const std = @import("std");
 const expect = std.testing.expect;
 const test_gpa = std.testing.allocator;
 
+
+/// Calculate length of ANSI color width padding (for buffers)
 pub fn ColorStringWidthPadding(comptime rgb: [3]u8) usize {
     const str = "\x1B[38;2;;;m\x1B[0m";
     var sum = str.len;
@@ -16,6 +18,17 @@ pub fn ColorStringWidthPadding(comptime rgb: [3]u8) usize {
         }
     }
     return sum;
+}
+
+/// Coloring strings with ANSI escape codes using compile time known strings
+pub fn colorStringComptime(comptime rgb: [3]u8, comptime str: []const u8) []u8 {
+    const r = rgb[0];
+    const g = rgb[1];
+    const b = rgb[2];
+    return try std.fmt.comptimePrint(
+        "\x1B[38;2;{d};{d};{d}m{s}\x1B[0m",
+        .{r, g, b, str}
+    );
 }
 
 /// Coloring strings with ANSI escape codes using a buffer
