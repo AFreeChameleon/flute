@@ -116,9 +116,13 @@ pub fn GenerateTableType(
         }
 
         pub fn deinit(self: *Self) void {
+            self.freeRows();
+            self.rows.deinit();
+        }
+
+        pub fn freeRows(self: *Self) void {
             self.rows.clearAndFree();
             self.rows.clearRetainingCapacity();
-            self.rows.deinit();
         }
 
         /// Adds a row to the table
