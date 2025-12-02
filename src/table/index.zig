@@ -59,13 +59,20 @@ pub const Borders = struct {
     // const vert_line = "│";
 };
 
+fn IsSliceOfBytes(comptime T: type) bool {
+    const info = @typeInfo(T);
+    const is_slice_u8 =
+        info == .pointer and info.pointer.size == .slice and info.pointer.child == u8;
+    return is_slice_u8;
+}
+
 const ROW_WIDTH: usize = 0;
 fn GenerateRowWidths(comptime Row: type) type {
     const row_fields = @typeInfo(Row).@"struct".fields;
     var fields: [row_fields.len]std.builtin.Type.StructField = undefined;
     inline for (row_fields, 0..) |field, i| {
-        if (field.type != []const u8) {
-            @panic("All fields in the table must be []const u8");
+        if (!IsSliceOfBytes(field.type)) {
+            @panic("All fields in the table must be []u8 or []const u8");
         }
         fields[i] = std.builtin.Type.StructField{
             .name = field.name,
@@ -291,6 +298,32 @@ pub fn GenerateTableType(
 
 test "table/index.zig" {
     std.debug.print("\n----- table/index.zig -----\n\n", .{});
+}
+
+test "Successfully make table with []u8" {
+    std.debug.print("Successfully make table with []u8\n", .{});
+
+    const Row = struct {
+        col1: []u8,
+        col2: []u8,
+        col3: []u8,
+        col4: []u8,
+    };
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+    const col = try test_gpa.alloc(u8, 4);
+    @memcpy(col, "col1");
+    defer test_gpa.free(col);
+    const new_row: Row = Row {
+        .col1 = col,
+        .col2 = col,
+        .col3 = col,
+        .col4 = col
+    };
+    try t.addRow(new_row);
+
+    try expect(t.rows.items.len == 1);
 }
 
 test "Successfully make table with one row" {
