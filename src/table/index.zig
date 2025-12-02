@@ -127,6 +127,14 @@ pub fn GenerateTableType(
             try self.updateRowWidths(&row);
         }
 
+        /// Adds rows to the table
+        pub fn addRows(self: *Self, rows: []Row) !void {
+            try self.rows.appendSlice(rows);
+            for (rows) |row| {
+                try self.updateRowWidths(&row);
+            }
+        }
+
         /// Adds a row to the table
         // pub fn removeRows(self: *Self, num_rows: usize) !void {
         //     for (0..num_rows) |_| {
