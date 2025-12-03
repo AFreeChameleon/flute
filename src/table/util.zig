@@ -21,7 +21,7 @@ pub fn getStringVisualLength(str: []const u8) !u32 {
 fn unicodeWidth(code_point: u21) u8 {
     // C0 and DEL
     if (code_point == 0) return 0;
-    if (code_point < 32 or (code_point >= 0x7f and code_point < 0xa0)) return 0;
+    if (code_point < 0x20 or (code_point >= 0x7f and code_point < 0xa0)) return 0;
 
     // wide or Fullwidth ranges (based on wcwidth.c and Unicode TR11)
     if ((code_point >= 0x1100 and code_point <= 0x115F) or
