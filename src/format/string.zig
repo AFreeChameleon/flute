@@ -25,7 +25,7 @@ pub fn colorStringComptime(comptime rgb: [3]u8, comptime str: []const u8) []u8 {
     const r = rgb[0];
     const g = rgb[1];
     const b = rgb[2];
-    return try std.fmt.comptimePrint(
+    return std.fmt.comptimePrint(
         "\x1B[38;2;{d};{d};{d}m{s}\x1B[0m",
         .{r, g, b, str}
     );
