@@ -4,6 +4,8 @@ const builtin = @import("builtin");
 const util = @import("./util.zig");
 const log = @import("./log.zig");
 
+const string = @import("../format/string.zig");
+
 const test_gpa = std.testing.allocator;
 const expect = std.testing.expect;
 
@@ -409,6 +411,24 @@ test "Make table with one row with cyrillic characters and check row width" {
     try expect(t.row_widths.col3 == 7);
     try expect(t.row_widths.col4 == 6);
     
+}
+
+test "Make table with one row with ANSI escape codes and check row width" {
+    std.debug.print("Make table with one row with ANSI escape codes and check row width\n", .{});
+
+    const Row = struct {
+        col1: []const u8,
+    };
+    const Table = GenerateTableType(Row);
+    var t = try Table.init(test_gpa);
+    defer t.deinit();
+    const new_row1: Row = Row {
+        .col1 = string.colorStringComptime([_]u8{0, 0, 255}, "col1"),
+    };
+    try t.addRow(new_row1);
+
+    try expect(t.rows.items.len == 1);
+    try expect(t.row_widths.col1 == 6);
 }
 
 test "Make table with one row with chinese characters and check row width" {

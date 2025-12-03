@@ -3,8 +3,17 @@ const std = @import("std");
 pub fn getStringVisualLength(str: []const u8) !u32 {
     var iter: std.unicode.Utf8Iterator = .{.bytes = str, .i = 0};
     var count: u32 = 0;
-    while (iter.nextCodepoint()) |code_point| {
-    	count += unicodeWidth(code_point);
+    var within_ansi = false;
+    while (iter.nextCodepointSlice()) |code_point_str| {
+        const char = code_point_str[0];
+        switch (isAnsiCode(char, within_ansi)) {
+            .yes => { within_ansi = true; continue; },
+            .no => within_ansi = false,
+            .no_skip => { within_ansi = false; continue; }
+        }
+
+        const code_point = try std.unicode.utf8Decode(code_point_str);
+        count += unicodeWidth(code_point);
     }
     return count;
 }
@@ -32,4 +41,28 @@ fn unicodeWidth(code_point: u21) u8 {
     }
 
     return 1;
+}
+
+/// Takes in first char string and says if you're in an ansi code
+fn isAnsiCode(char: u8, within_one: bool) enum (u4) { yes, no, no_skip } {
+    if (!within_one) {
+        if (char == 0x1B) {
+            return .yes;
+        }
+        return .no;
+    }
+
+    if (char == '[') {
+        return .yes;
+    }
+
+    if (char == 'm') {
+        return .no_skip;
+    }
+
+    if (char == ';' or std.ascii.isDigit(char)) {
+        return .yes;
+    }
+
+    return .no;
 }
