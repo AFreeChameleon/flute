@@ -21,7 +21,7 @@ pub fn ColorStringWidthPadding(comptime rgb: [3]u8) usize {
 }
 
 /// Coloring strings with ANSI escape codes using compile time known strings
-pub fn colorStringComptime(comptime rgb: [3]u8, comptime str: []const u8) []u8 {
+pub fn colorStringComptime(comptime rgb: [3]u8, comptime str: []const u8) []const u8 {
     const r = rgb[0];
     const g = rgb[1];
     const b = rgb[2];
