@@ -157,8 +157,8 @@ pub fn GenerateTableType(
         // }
 
         /// Removes a row from the table's memory
-        pub fn removeRow(self: *Self, idx: usize) void {
-            _ = self.rows.orderedRemove(idx);
+        pub fn removeRow(self: *Self, idx: usize) Row {
+            return self.rows.orderedRemove(idx);
         }
 
         fn refreshAllRowWidths(self: *Self) !void {
@@ -283,6 +283,7 @@ pub fn GenerateTableType(
 
             // VT100 go up 1 line and erase it
             for (0..total_lines_printed) |_| try writer.writeAll("\x1b[A\x1b[2K");
+            self.lines_printed = 0;
         }
 
         fn calculateTotalRows(row_width: f32, window_cols: f32, num_of_rows: usize) usize {
@@ -486,7 +487,7 @@ test "Remove one row" {
         .col4 = "2",
     });
 
-    t.removeRow(0);
+    _ = t.removeRow(0);
 
     try expect(std.mem.eql(u8, t.rows.items[0].col1, "2"));
 }
@@ -561,9 +562,11 @@ test "Count amount of rows cleared" {
     const wr = result.writer();
     try t.printTable(wr);
 
+    try expect(t.lines_printed == 4);
+
     try t.clear(wr);
 
-    try expect(t.lines_printed == 4);
+    try expect(t.lines_printed == 0);
     try expect(std.mem.eql(u8, result.items[result.items.len - 7..], "\x1b[A\x1b[2K"));
     try expect(std.mem.eql(u8, result.items[result.items.len - 14..result.items.len - 7], "\x1b[A\x1b[2K"));
     try expect(std.mem.eql(u8, result.items[result.items.len - 21..result.items.len - 14], "\x1b[A\x1b[2K"));
@@ -610,10 +613,11 @@ test "Count amount of rows cleared on custom table" {
         try t.printRow(idx, wr);
     }
     try t.printBorder(Borders.bottom, wr);
+    try expect(t.lines_printed == 5);
 
     try t.clear(wr);
 
-    try expect(t.lines_printed == 5);
+    try expect(t.lines_printed == 0);
     try expect(std.mem.eql(u8, result.items[result.items.len - 7..], "\x1b[A\x1b[2K"));
     try expect(std.mem.eql(u8, result.items[result.items.len - 14..result.items.len - 7], "\x1b[A\x1b[2K"));
     try expect(std.mem.eql(u8, result.items[result.items.len - 21..result.items.len - 14], "\x1b[A\x1b[2K"));
@@ -645,8 +649,6 @@ test "Count amount of rows with a wrapped table" {
     const wr = result.writer();
     try t.printTable(wr);
 
-    try t.clear(wr);
-
     const fl_row_width: f32 = @floatFromInt(t.getTotalTableWidth());
     const fl_window_cols: f32 = @floatFromInt(try log.getWindowCols());
 
@@ -655,5 +657,9 @@ test "Count amount of rows with a wrapped table" {
     );
 
     try expect(total_lines_printed == 8);
+
+    try t.clear(wr);
+
+    try expect(t.lines_printed == 0);
     try expect(std.mem.eql(u8, result.items[result.items.len - 56..result.items.len - 49], "\x1b[A\x1b[2K"));
 }
