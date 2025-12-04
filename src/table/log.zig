@@ -20,7 +20,7 @@ pub fn getWindowCols() !u32 {
     if (comptime builtin.target.os.tag != .windows) {
         var w: std.posix.winsize = undefined;
         _ = std.c.ioctl(std.c.STDOUT_FILENO, TIOCGWINSZ, &w);
-        cols = w.ws_col;
+        cols = w.col;
     } else {
         var csbi: std.os.windows.CONSOLE_SCREEN_BUFFER_INFO = std.mem.zeroes(std.os.windows.CONSOLE_SCREEN_BUFFER_INFO);
         const res = std.os.windows.GetConsoleScreenBufferInfo(std.os.windows.GetStdHandle(std.os.windows.STD_OUTPUT_HANDLE), &csbi);

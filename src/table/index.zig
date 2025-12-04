@@ -156,7 +156,7 @@ pub fn GenerateTableType(
         //     }
         // }
 
-        /// Removes a row from the table
+        /// Removes a row from the table's memory
         pub fn removeRow(self: *Self, idx: usize) void {
             _ = self.rows.orderedRemove(idx);
         }
@@ -270,7 +270,8 @@ pub fn GenerateTableType(
             return total_width;
         }
 
-        /// Clears the printed table
+        /// Clears the printed table from the terminal but does NOT
+        /// remove the rows from memory
         pub fn clear(self: *Self, writer: anytype) !void {
             // Length of table row in terminal columns
             const fl_row_width: f32 = @floatFromInt(self.getTotalTableWidth());
