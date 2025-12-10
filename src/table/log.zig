@@ -23,7 +23,8 @@ pub fn getWindowCols() !u32 {
         cols = w.col;
     } else {
         var csbi: std.os.windows.CONSOLE_SCREEN_BUFFER_INFO = std.mem.zeroes(std.os.windows.CONSOLE_SCREEN_BUFFER_INFO);
-        const res = std.os.windows.kernel32.GetConsoleScreenBufferInfo(std.os.windows.GetStdHandle(std.os.windows.STD_OUTPUT_HANDLE), &csbi);
+        const std_handle = try std.os.windows.GetStdHandle(std.os.windows.STD_OUTPUT_HANDLE);
+        const res = std.os.windows.kernel32.GetConsoleScreenBufferInfo(std_handle, &csbi);
         if (res == 0) {
             try printErr("Windows error code: {d}", .{std.os.windows.GetLastError()});
             return error.FailedToSetWindowCols;
