@@ -1,15 +1,19 @@
 const std = @import("std");
+const expect = std.testing.expect;
+
+const State = enum (u4) { yes, yes_osc, no, no_skip };
 
 pub fn getStringVisualLength(str: []const u8) !u32 {
     var iter: std.unicode.Utf8Iterator = .{.bytes = str, .i = 0};
     var count: u32 = 0;
-    var within_ansi = false;
+    var state: State = .no;
     while (iter.nextCodepointSlice()) |code_point_str| {
         const char = code_point_str[0];
-        switch (isAnsiCode(char, within_ansi)) {
-            .yes => { within_ansi = true; continue; },
-            .no => within_ansi = false,
-            .no_skip => { within_ansi = false; continue; }
+        state = isAnsiCode(char, state);
+        switch (state) {
+            .yes, .yes_osc => continue,
+            .no_skip => continue,
+            else => {}
         }
 
         const code_point = try std.unicode.utf8Decode(code_point_str);
@@ -44,8 +48,8 @@ fn unicodeWidth(code_point: u21) u8 {
 }
 
 /// Takes in first char string and says if you're in an ansi code
-fn isAnsiCode(char: u8, within_one: bool) enum (u4) { yes, no, no_skip } {
-    if (!within_one) {
+fn isAnsiCode(char: u8, state: State) State {
+    if (state == .no) {
         if (char == 0x1B) {
             return .yes;
         }
@@ -56,13 +60,69 @@ fn isAnsiCode(char: u8, within_one: bool) enum (u4) { yes, no, no_skip } {
         return .yes;
     }
 
-    if (char == 'm') {
-        return .no_skip;
+    if (char == ']') {
+        return .yes_osc;
     }
-
-    if (char == ';' or std.ascii.isDigit(char)) {
+    if (state == .yes_osc) {
+        if (char == 0x07) {
+            return .no_skip;
+        }
+        return .yes_osc;
+    }
+    
+    if (char < 0x40 or char > 0x7E) {
         return .yes;
     }
 
+    if (state == .yes) {
+        return .no_skip;
+    }
+
     return .no;
+}
+
+
+test "table/util.zig" {
+    std.debug.print("\n----- table/util.zig -----\n\n", .{});
+}
+
+test "Test terminal width of regular text" {
+    std.debug.print("Test terminal width of regular text\n", .{});
+
+    const test_str = "HELLO";
+    const len = try getStringVisualLength(test_str);
+    try expect(len == 5);
+}
+
+test "Test terminal width of wide text" {
+    std.debug.print("Test terminal width of wide text\n", .{});
+
+    // Chinese Ni & Waving emoji
+    const test_str = "你👋";
+    const len = try getStringVisualLength(test_str);
+    try expect(len == 4);
+}
+
+test "Test terminal width of ANSI erase line" {
+    std.debug.print("Test terminal width of ANSI code\n", .{});
+
+    const test_str = "\x1b[A\x1b[2K";
+    const len = try getStringVisualLength(test_str);
+    try expect(len == 0);
+}
+
+test "Test terminal width of ANSI colour text" {
+    std.debug.print("Test terminal width of ANSI colour text\n", .{});
+
+    const test_str = "\x1b[38;2;255;255;255mHELLO\x1B[0m";
+    const len = try getStringVisualLength(test_str);
+    try expect(len == 5);
+}
+
+test "Test terminal width of OSC embedded link text" {
+    std.debug.print("Test terminal width of OSC embedded link text\n", .{});
+
+    const test_str = "\x1b]8;;https://example.com\x07Link\x1b]8;;\x07";
+    const len = try getStringVisualLength(test_str);
+    try expect(len == 4);
 }
