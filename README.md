@@ -7,11 +7,11 @@ Works on:
 - Windows
 - Macos
 - Linux
-- FreeBSD
+- FreeBSD (Not tested but should do)
 
 ## Installation & Usage
 
-This works on Zig versions 0.14 and 0.15. To fetch the package, run:
+This works on Zig versions 0.14 at the moment, 0.15 will be coming soon. To fetch the package, run:
 ```
 zig fetch --save git+https://github.com/AFreeChameleon/flute/#0.14
 ```
